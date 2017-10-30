@@ -20,7 +20,6 @@ describe('ZabbixDatasource', function () {
   beforeEach(function () {
     ctx.instanceSettings = {
       jsonData: {
-        alerting: true,
         username: 'zabbix',
         password: 'zabbix',
         trends: true,
@@ -66,7 +65,7 @@ describe('ZabbixDatasource', function () {
         range: { from: 'now-6h', to: 'now' }
       };
       ctx.ds.query(options).then(function (result) {
-        expect(result.data.length).toBe(0);
+        expect(result.data).toHaveLength(0);
         done();
       });
     });
@@ -318,6 +317,7 @@ describe('ZabbixDatasource', function () {
       ctx.ds.replaceTemplateVars = function (str) {
         return str;
       };
+      ctx.ds.alertingEnabled = true;
 
       var targetItems = [{
         "itemid": "1",
@@ -377,7 +377,7 @@ describe('ZabbixDatasource', function () {
       };
 
       return ctx.ds.alertQuery(options).then(function (resp) {
-        expect(resp.thresholds.length).toBe(1);
+        expect(resp.thresholds).toHaveLength(1);
         expect(resp.thresholds[0]).toBe(100);
         return resp;
       });
@@ -396,7 +396,7 @@ describe('ZabbixDatasource', function () {
       };
 
       return ctx.ds.alertQuery(options).then(function (resp) {
-        expect(resp.thresholds.length).toBe(1);
+        expect(resp.thresholds).toHaveLength(1);
         expect(resp.thresholds[0]).toBe(30);
         return resp;
       });
@@ -415,7 +415,7 @@ describe('ZabbixDatasource', function () {
       };
 
       return ctx.ds.alertQuery(options).then(function (resp) {
-        expect(resp.thresholds.length).toBe(1);
+        expect(resp.thresholds).toHaveLength(1);
         expect(resp.thresholds[0]).toBe(50);
         return resp;
       });

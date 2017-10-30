@@ -128,15 +128,14 @@ var ZabbixAPIDatasource = function () {
       var _this = this;
 
       // Get alerts for current panel
+      var emptyPromise = Promise.resolve();
       if (this.alertingEnabled) {
-        this.alertQuery(options).then(function (alert) {
+        emptyPromise = this.alertQuery(options).then(function (alert) {
           _this.zabbixAlertingSrv.setPanelAlertState(options.panelId, alert.state);
 
           _this.zabbixAlertingSrv.removeZabbixThreshold(options.panelId);
           if (_this.addThresholds) {
-            _lodash2.default.forEach(alert.thresholds, function (threshold) {
-              _this.zabbixAlertingSrv.setPanelThreshold(options.panelId, threshold);
-            });
+            _this.zabbixAlertingSrv.setThresholds(options.panelId, alert.thresholds);
           }
         });
       }
@@ -203,8 +202,10 @@ var ZabbixAPIDatasource = function () {
       });
 
       // Data for panel (all targets)
-      return Promise.all(_lodash2.default.flatten(promises)).then(_lodash2.default.flatten).then(function (data) {
-        return { data: data };
+      return emptyPromise.then(function () {
+        return Promise.all(_lodash2.default.flatten(promises)).then(_lodash2.default.flatten).then(function (data) {
+          return { data: data };
+        });
       });
     }
 
@@ -221,6 +222,7 @@ var ZabbixAPIDatasource = function () {
         itemtype: 'num'
       };
       return this.zabbix.getItemsFromTarget(target, getItemOptions).then(function (items) {
+        _this2.setDescription(items, options);
         return _this2.queryNumericDataForItems(items, target, timeRange, useTrends, options);
       });
     }
@@ -748,6 +750,18 @@ var ZabbixAPIDatasource = function () {
       var useTrendsRange = Math.ceil(utils.parseInterval(this.trendsRange) / 1000);
       var useTrends = this.trends && (timeFrom <= useTrendsFrom || timeTo - timeFrom >= useTrendsRange);
       return useTrends;
+    }
+  }, {
+    key: 'setDescription',
+    value: function setDescription(items, options) {
+      var panelModel = this.dashboardSrv.dash.getPanelById(options.panelId);
+      var desc = items.map(function (i) {
+        return i.description;
+      });
+      desc = desc.length === 1 ? desc[0] : desc;
+      panelModel.scopedVars.description = {
+        value: desc
+      };
     }
   }]);
 

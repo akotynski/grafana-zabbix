@@ -77,15 +77,14 @@ class ZabbixAPIDatasource {
    */
   query(options) {
     // Get alerts for current panel
+    let emptyPromise = Promise.resolve();
     if (this.alertingEnabled) {
-      this.alertQuery(options).then(alert => {
+      emptyPromise = this.alertQuery(options).then(alert => {
         this.zabbixAlertingSrv.setPanelAlertState(options.panelId, alert.state);
 
         this.zabbixAlertingSrv.removeZabbixThreshold(options.panelId);
         if (this.addThresholds) {
-          _.forEach(alert.thresholds, threshold => {
-            this.zabbixAlertingSrv.setPanelThreshold(options.panelId, threshold);
-          });
+          this.zabbixAlertingSrv.setThresholds(options.panelId, alert.thresholds);
         }
       });
     }
@@ -148,11 +147,11 @@ class ZabbixAPIDatasource {
     });
 
     // Data for panel (all targets)
-    return Promise.all(_.flatten(promises))
+    return emptyPromise.then(() => Promise.all(_.flatten(promises))
       .then(_.flatten)
       .then(data => {
         return { data: data };
-      });
+      }));
   }
 
   /**
@@ -164,6 +163,7 @@ class ZabbixAPIDatasource {
     };
     return this.zabbix.getItemsFromTarget(target, getItemOptions)
     .then(items => {
+      this.setDescription(items, options);
       return this.queryNumericDataForItems(items, target, timeRange, useTrends, options);
     });
   }
@@ -639,6 +639,15 @@ class ZabbixAPIDatasource {
       (timeTo - timeFrom >= useTrendsRange)
     );
     return useTrends;
+  }
+
+  setDescription(items, options) {
+    let panelModel = this.dashboardSrv.dash.getPanelById(options.panelId);
+    let desc = items.map(i => i.description);
+    desc = desc.length === 1 ? desc[0] : desc;
+    panelModel.scopedVars.description = {
+      value: desc
+    };
   }
 }
 
